@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './VideoUpload.css'; // Import a separate CSS file for styling
+import './VideoUpload.css';
+import emotionImage from './imgs/emotions.jpg';
 
 const VideoUpload = () => {
   const [video, setVideo] = useState(null);
@@ -41,7 +42,6 @@ const VideoUpload = () => {
   return (
     <div className="video-upload-container">
       <div className="background-image">
-        <h1 className="header-title">Upload Your Video</h1>
       </div>
       <div className="upload-content">
         <input
@@ -58,6 +58,24 @@ const VideoUpload = () => {
           {loading ? 'Uploading...' : 'Upload Video'}
         </button>
         {error && <p className="error-message">{error}</p>}
+      </div>
+
+      {/* Emotion Theory Section */}
+      <div className="emotion-section">
+        <h2 className="emotion-title">The Theory of Emotions</h2>
+        <p className="emotion-text">
+          Emotions are psychological states that involve physiological changes, behavioral responses, and conscious feelings.
+          They are an integral part of human experience and can be categorized into basic emotions such as happiness, sadness, anger, fear, surprise, and disgust.
+        </p>
+        <div className="emotion-types">
+          <div className="emotion-type happy">Happiness</div>
+          <div className="emotion-type exciting">Excited</div>
+          <div className="emotion-type sad">Sadness</div>
+          <div className="emotion-type angry">Anger</div>
+          <div className="emotion-type frustration">Frustration</div>
+          <div className="emotion-type neutral">Neutral</div>
+        </div>
+        
       </div>
     </div>
   );
