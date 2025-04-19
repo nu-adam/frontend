@@ -1,0 +1,140 @@
+/* EmotionTheories.css */
+.emotion-theories-container {
+  width: 100%;
+  padding: 50px 0;
+  background-color: #f9f9f9;
+}
+
+.emotion-theories-title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 40px;
+}
+
+.accordion-button {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #007bff;
+}
+
+.accordion-button:focus {
+  box-shadow: none;
+}
+
+.accordion-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #555;
+  background-color: #f0f8ff;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.accordion-item {
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.accordion-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+}
+
+.accordion-body p {
+  margin: 10px 0;
+}
+
+
+.emotion-section {
+  margin-top: 50px;
+  background-color: #e0f7fa;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  position: relative;
+}
+
+.emotion-title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  animation: fadeIn 2s ease-in-out;
+}
+
+.emotion-text {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #555;
+}
+
+.emotion-types {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 30px;
+}
+
+.emotion-type {
+  font-size: 1.2rem;
+  padding: 15px;
+  border-radius: 10px;
+  width: 120px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.emotion-type:hover {
+  transform: scale(1.1);
+}
+
+.happy {
+  background-color: #ffeb3b;
+  color: #fff;
+}
+
+.sad {
+  background-color: #2196f3;
+  color: #fff;
+}
+
+.angry {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.frustration {
+  background-color: #9c27b0;
+  color: #fff;
+}
+
+.exciting {
+  background-color: #d17e12;
+  color: #fff;
+}
+
+.neutral {
+  background-color: #00ba0c;
+  color: #fff;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.theory-header-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 3rem;
+}

@@ -33,6 +33,24 @@ const EmotionTheories = () => {
 
   return (
     <div className="emotion-theories-container">
+      <div className="theory-header-container">
+        {/* Emotion Theory Section */}
+        <div className="emotion-section">
+          <h2 className="emotion-title">The Theory of Emotions</h2>
+          <p className="emotion-text">
+            Emotions are psychological states that involve physiological changes, behavioral responses, and conscious feelings.
+            They are an integral part of human experience and can be categorized into basic emotions such as happiness, sadness, anger, fear, surprise, and disgust.
+          </p>
+          <div className="emotion-types">
+            <div className="emotion-type happy">Happiness</div>
+            <div className="emotion-type exciting">Excited</div>
+            <div className="emotion-type sad">Sadness</div>
+            <div className="emotion-type angry">Anger</div>
+            <div className="emotion-type frustration">Frustration</div>
+            <div className="emotion-type neutral">Neutral</div>
+          </div>
+        </div>
+      </div>
       <h2 className="emotion-theories-title">The 6 Major Theories of Emotion</h2>
       <div className="accordion" id="emotionAccordion">
         {theories.map((theory, index) => (
