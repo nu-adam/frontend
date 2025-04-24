@@ -10,37 +10,39 @@ const VideoProcess = ({ splitFolder }) => {
     const [eventSource, setEventSource] = useState(null);
     const [totalClips, setTotalClips] = useState(0);
 
-    // Define colors for each emotion
+    // Define colors for each emotion - updated to match backend
     const emotionColors = {
         neutral: '#4e79a7',
-        happy: '#59a14f',
-        sad: '#e15759',
-        anger: '#edc948',
-        surprise: '#b07aa1',
-        disgust: '#ff9da7',
-        fear: '#9c755f'
+        anger: '#e15759',
+        sadness: '#59a14f',
+        frustration: '#edc948',
+        excited: '#b07aa1',
+        happiness: '#ff9da7'
     };
 
-    // Calculate the maximum confidence value from all results
-    const getMaxConfidence = () => {
-        if (results.length === 0) return 100; // Default to 100% if no results
+    // Emotion display names for better presentation
+    const emotionDisplayNames = {
+        neutral: 'Neutral',
+        anger: 'Anger',
+        sadness: 'Sadness',
+        frustration: 'Frustration',
+        excited: 'Excited',
+        happiness: 'Happiness'
+    };
 
-        // Find the highest confidence value across all results
+    const getMaxConfidence = () => {
+        if (results.length === 0) return 100;
         const maxConfidence = Math.max(
             ...results.map(result => result.confidence * 100)
         );
-
-        // Add 10% padding to the maximum value for better visualization
         return Math.min(Math.ceil(maxConfidence * 1.1), 100);
-    }
+    };
 
     const handleStartAnalysis = () => {
         if (!splitFolder) {
             setError("No video clips available for analysis");
             return;
         }
-
-        console.log('Split folder:', splitFolder);
 
         setIsAnalyzing(true);
         setProgress(0);
@@ -56,11 +58,10 @@ const VideoProcess = ({ splitFolder }) => {
         });
 
         es.addEventListener('message', (event) => {
-            if (event.data.trim() === '{}') return; // Skip empty events
+            if (event.data.trim() === '{}') return;
 
             try {
                 const data = JSON.parse(event.data);
-
                 if (data.error) {
                     setError(`Error processing clip ${data.current}/${data.total}: ${data.error}`);
                 } else {
@@ -111,13 +112,11 @@ const VideoProcess = ({ splitFolder }) => {
         };
     }, [eventSource]);
 
-    // Prepare data for the chart - one series per emotion
-    // Prepare data for the chart - one series per emotion
     const emotionSeries = () => {
-        const emotions = ['neutral', 'happy', 'sad', 'anger', 'surprise', 'disgust', 'fear'];
+        const emotions = ['neutral', 'anger', 'sadness', 'frustration', 'excited', 'happiness'];
         return emotions.map(emotion => ({
-            label: `${emotion.charAt(0).toUpperCase() + emotion.slice(1)}`,
-            data: results.map(result =>
+            label: emotionDisplayNames[emotion],
+            data: results.map(result => 
                 parseFloat((result.probabilities[emotion] * 100).toFixed(2))
             ),
             color: emotionColors[emotion],
@@ -126,7 +125,6 @@ const VideoProcess = ({ splitFolder }) => {
         }));
     };
 
-    // Get clip numbers for x-axis
     const clipNumbers = results.map(result => result.current);
 
     return (
@@ -157,15 +155,14 @@ const VideoProcess = ({ splitFolder }) => {
                             </button>
                         )}
                     </div>
-                    {
-                        isAnalyzing && (
-                            <div className="progress-container">
-                                <progress value={progress} max="100" />
-                                <span>{progress.toFixed(1)}%</span>
-                                <span>Processing {results.length} of {results[0]?.total || '?'} clips</span>
-                            </div>
-                        )
-                    }
+
+                    {isAnalyzing && (
+                        <div className="progress-container">
+                            <progress value={progress} max="100" />
+                            <span>{progress.toFixed(1)}%</span>
+                            <span>Processing {results.length} of {results[0]?.total || '?'} clips</span>
+                        </div>
+                    )}
 
                     {error && <div className="error-message">{error}</div>}
 
@@ -201,13 +198,14 @@ const VideoProcess = ({ splitFolder }) => {
                                     <h3>Latest Result (Clip {results[results.length - 1].current})</h3>
                                     <div className="result-details">
                                         <p><strong>Dominant Emotion:</strong> {results[results.length - 1].emotion}</p>
+                                        <p><strong>Confidence:</strong> {(results[results.length - 1].confidence * 100).toFixed(2)}%</p>
                                         <p><strong>Probabilities:</strong></p>
                                         <ul>
                                             {Object.entries(results[results.length - 1].probabilities)
                                                 .sort((a, b) => b[1] - a[1])
                                                 .map(([emotion, prob]) => (
                                                     <li key={emotion} style={{ color: emotionColors[emotion] }}>
-                                                        {emotion.charAt(0).toUpperCase() + emotion.slice(1)}: {(prob * 100).toFixed(2)}%
+                                                        {emotionDisplayNames[emotion]}: {(prob * 100).toFixed(2)}%
                                                     </li>
                                                 ))}
                                         </ul>
