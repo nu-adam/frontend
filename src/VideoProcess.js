@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { LineChart } from '@mui/x-charts/LineChart';
-import './VideoProcess.css';
+import React, { useState, useEffect } from 'react'
+import { LineChart } from '@mui/x-charts/LineChart'
+import './VideoProcess.css'
 
 const VideoProcess = ({ splitFolder }) => {
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [error, setError] = useState(null);
-    const [results, setResults] = useState([]);
-    const [eventSource, setEventSource] = useState(null);
-    const [totalClips, setTotalClips] = useState(0);
+    const [isAnalyzing, setIsAnalyzing] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const [error, setError] = useState(null)
+    const [results, setResults] = useState([])
+    const [eventSource, setEventSource] = useState(null)
+    const [totalClips, setTotalClips] = useState(0)
 
     // Define colors for each emotion - updated to match backend
     const emotionColors = {
@@ -18,7 +18,7 @@ const VideoProcess = ({ splitFolder }) => {
         frustration: '#edc948',
         excited: '#b07aa1',
         happiness: '#ff9da7'
-    };
+    }
 
     // Emotion display names for better presentation
     const emotionDisplayNames = {
@@ -28,104 +28,104 @@ const VideoProcess = ({ splitFolder }) => {
         frustration: 'Frustration',
         excited: 'Excited',
         happiness: 'Happiness'
-    };
+    }
 
     const getMaxConfidence = () => {
-        if (results.length === 0) return 100;
+        if (results.length === 0) return 100
         const maxConfidence = Math.max(
             ...results.map(result => result.confidence * 100)
-        );
-        return Math.min(Math.ceil(maxConfidence * 1.1), 100);
-    };
+        )
+        return Math.min(Math.ceil(maxConfidence * 1.1), 100)
+    }
 
     const handleStartAnalysis = () => {
         if (!splitFolder) {
-            setError("No video clips available for analysis");
-            return;
+            setError("No video clips available for analysis")
+            return
         }
 
-        setIsAnalyzing(true);
-        setProgress(0);
-        setResults([]);
-        setError(null);
+        setIsAnalyzing(true)
+        setProgress(0)
+        setResults([])
+        setError(null)
 
         const es = new EventSource(
             `http://127.0.0.1:5000/analyze-clips?split_folder=${encodeURIComponent(splitFolder)}`
-        );
+        )
 
         es.addEventListener('open', () => {
-            console.log('Connection established');
-        });
+            console.log('Connection established')
+        })
 
         es.addEventListener('message', (event) => {
-            if (event.data.trim() === '{}') return;
+            if (event.data.trim() === '{}') return
 
             try {
-                const data = JSON.parse(event.data);
+                const data = JSON.parse(event.data)
                 if (data.error) {
-                    setError(`Error processing clip ${data.current}/${data.total}: ${data.error}`);
+                    setError(`Error processing clip ${data.current}/${data.total}: ${data.error}`)
                 } else {
-                    const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+                    const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result
                     setResults(prev => [...prev, {
                         ...result,
                         current: data.current,
                         total: data.total
-                    }]);
-                    setTotalClips(data.total);
-                    setProgress((data.current / data.total) * 100);
+                    }])
+                    setTotalClips(data.total)
+                    setProgress((data.current / data.total) * 100)
                 }
             } catch (e) {
-                console.error('Error parsing event data:', e);
+                console.error('Error parsing event data:', e)
             }
-        });
+        })
 
         es.addEventListener('complete', () => {
-            console.log('Analysis complete');
-            es.close();
-            setIsAnalyzing(false);
-        });
+            console.log('Analysis complete')
+            es.close()
+            setIsAnalyzing(false)
+        })
 
         es.addEventListener('error', (err) => {
-            console.error('EventSource error:', err);
-            setError('Analysis connection error. Please try again.');
-            es.close();
-            setIsAnalyzing(false);
-        });
+            console.error('EventSource error:', err)
+            setError('Analysis connection error. Please try again.')
+            es.close()
+            setIsAnalyzing(false)
+        })
 
-        setEventSource(es);
-    };
+        setEventSource(es)
+    }
 
     const handleStopAnalysis = () => {
         if (eventSource) {
-            eventSource.close();
-            setEventSource(null);
+            eventSource.close()
+            setEventSource(null)
         }
-        setIsAnalyzing(false);
-        setError('Analysis stopped by user');
-    };
+        setIsAnalyzing(false)
+        setError('Analysis stopped by user')
+    }
 
     useEffect(() => {
         return () => {
             if (eventSource) {
-                eventSource.close();
+                eventSource.close()
             }
-        };
-    }, [eventSource]);
+        }
+    }, [eventSource])
 
     const emotionSeries = () => {
-        const emotions = ['neutral', 'anger', 'sadness', 'frustration', 'excited', 'happiness'];
+        const emotions = ['neutral', 'anger', 'sadness', 'frustration', 'excited', 'happiness']
         return emotions.map(emotion => ({
             label: emotionDisplayNames[emotion],
-            data: results.map(result => 
+            data: results.map(result =>
                 parseFloat((result.probabilities[emotion] * 100).toFixed(2))
             ),
             color: emotionColors[emotion],
             showMark: false,
             curve: 'linear'
-        }));
-    };
+        }))
+    }
 
-    const clipNumbers = results.map(result => result.current);
+    const clipNumbers = results.map(result => result.current)
 
     return (
         <div className="video-process-container">
@@ -217,7 +217,7 @@ const VideoProcess = ({ splitFolder }) => {
                 </>
             )}
         </div>
-    );
-};
+    )
+}
 
-export default VideoProcess;
+export default VideoProcess
