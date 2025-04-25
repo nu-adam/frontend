@@ -40,8 +40,20 @@ const VideoProcess = ({ splitFolder, videoId }) => {
     );
     return Math.min(Math.ceil(maxConfidence * 1.1), 100);
   };
+  const { token, currentUser } = useAuth();
+  useEffect(() => {
+    console.log("Auth state in VideoProcess:", {
+      isAuthenticated: !!currentUser,
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 15) + "..." : "none",
+    });
+  }, [token, currentUser]);
 
   const handleStartAnalysis = () => {
+    if (!token) {
+      setError("Authentication token not found. Please log in again.");
+      return;
+    }
     if (!splitFolder) {
       setError("No video clips available for analysis");
       return;
@@ -59,9 +71,14 @@ const VideoProcess = ({ splitFolder, videoId }) => {
     setError(null);
 
     // Use the baseURL from axios defaults set in AuthContext
-    const apiUrl = `/analyze-clips?split_folder=${encodeURIComponent(
+    // const apiUrl = `/analyze-clips?split_folder=${encodeURIComponent(
+    //   splitFolder
+    // )}${videoId ? `&video_id=${videoId}` : ""}`;
+    // const es = new EventSource(apiUrl);
+    const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000";
+    const apiUrl = `${API_URL}/analyze-clips?split_folder=${encodeURIComponent(
       splitFolder
-    )}${videoId ? `&video_id=${videoId}` : ""}`;
+    )}${videoId ? `&video_id=${videoId}` : ""}&token=${token}`;
     const es = new EventSource(apiUrl);
 
     es.addEventListener("open", () => {

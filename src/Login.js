@@ -54,6 +54,10 @@ const Login = () => {
 
   const handleCredentialResponse = async (response) => {
     if (response.credential) {
+      console.log(
+        "Google credential received:",
+        response.credential.substring(0, 20) + "..."
+      );
       await handleGoogleLogin(response.credential);
     }
   };

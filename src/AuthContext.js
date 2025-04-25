@@ -50,12 +50,11 @@ export const AuthProvider = ({ children }) => {
   const handleGoogleLogin = async (googleToken) => {
     try {
       const response = await axios.post("/auth/google", { token: googleToken });
-      const { user, token } = response.data;
 
-      // Store token and user info
-      localStorage.setItem("authToken", token);
-      setToken(token);
-      setCurrentUser(user);
+      // Very important: store the googleToken itself, not the token from the response
+      localStorage.setItem("authToken", googleToken);
+      setToken(googleToken);
+      setCurrentUser(response.data.user);
 
       return true;
     } catch (error) {
@@ -80,17 +79,13 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
+    token,
     handleGoogleLogin,
     logout,
     isAuthenticated: !!currentUser,
-    loading,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export default AuthContext;
