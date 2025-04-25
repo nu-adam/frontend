@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import './VideoUpload.css';
+import React, { useState } from "react";
+import axios from "axios";
+import { useAuth } from "./AuthContext";
+import "./VideoUpload.css";
 
 const VideoUpload = ({ onUploadSuccess }) => {
   const [video, setVideo] = useState(null);
@@ -8,13 +9,14 @@ const VideoUpload = ({ onUploadSuccess }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { isAuthenticated } = useAuth();
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       // Basic validation for video files
-      if (!file.type.startsWith('video/')) {
-        setError('Please select a video file');
+      if (!file.type.startsWith("video/")) {
+        setError("Please select a video file");
         return;
       }
       setError(null);
@@ -27,18 +29,23 @@ const VideoUpload = ({ onUploadSuccess }) => {
   const handleUpload = async () => {
     if (!video) return;
 
+    if (!isAuthenticated) {
+      setError("You must be logged in to upload videos.");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('video', video);
+    formData.append("video", video);
 
     setLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
-      console.log(formData)
-      const response = await axios.post('http://127.0.0.1:5000/upload', formData, {
+      // Using the baseURL from axios defaults set in AuthContext
+      const response = await axios.post("/upload", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
         onUploadProgress: (progressEvent) => {
           const progress = Math.round(
@@ -47,21 +54,21 @@ const VideoUpload = ({ onUploadSuccess }) => {
           setUploadProgress(progress);
         },
       });
-      console.log('Upload successful', response.data);
+      console.log("Upload successful", response.data);
       setSuccess(true);
       setVideo(null); // Clear the selected file after successful upload
       onUploadSuccess(response.data);
     } catch (err) {
-      let errorMessage = 'Error uploading video';
+      let errorMessage = "Error uploading video";
       if (err.response) {
         // Server responded with a status other than 200 range
         errorMessage = err.response.data.error || errorMessage;
       } else if (err.request) {
         // Request was made but no response received
-        errorMessage = 'No response from server';
+        errorMessage = "No response from server";
       }
       setError(errorMessage);
-      console.error('Error uploading video:', err);
+      console.error("Error uploading video:", err);
     } finally {
       setLoading(false);
     }
@@ -69,8 +76,7 @@ const VideoUpload = ({ onUploadSuccess }) => {
 
   return (
     <div className="video-upload-container">
-      <div className="background-image">
-      </div>
+      <div className="background-image"></div>
       <div className="upload-content">
         <input
           type="file"
@@ -80,7 +86,7 @@ const VideoUpload = ({ onUploadSuccess }) => {
           id="video-upload"
         />
         <label htmlFor="video-upload" className="file-input-label">
-          {video ? video.name : 'Choose a video file'}
+          {video ? video.name : "Choose a video file"}
         </label>
 
         {video && (
@@ -93,13 +99,15 @@ const VideoUpload = ({ onUploadSuccess }) => {
         <button
           onClick={handleUpload}
           disabled={loading || !video}
-          className={`upload-btn ${loading ? 'loading' : ''}`}
+          className={`upload-btn ${loading ? "loading" : ""}`}
         >
-          {loading ? 'Uploading...' : 'Upload Video'}
+          {loading ? "Uploading..." : "Upload Video"}
         </button>
 
         {error && <p className="error-message">{error}</p>}
-        {success && <p className="success-message">Video uploaded successfully!</p>}
+        {success && (
+          <p className="success-message">Video uploaded successfully!</p>
+        )}
       </div>
     </div>
   );
