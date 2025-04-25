@@ -186,7 +186,7 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     return (
       <div className="timeline-container mt-6">
         <h3 className="text-lg font-semibold mb-2">Video Timeline</h3>
-        <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+        <div className="timeline relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
           {results.map((result, index) => {
             const startPercent = (result.start_time / maxTime) * 100;
             const endPercent = (result.end_time / maxTime) * 100;
