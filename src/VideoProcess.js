@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import './VideoProcess.css';
+import Timeline from '@mui/lab/Timeline';
+import TimelineItem from '@mui/lab/TimelineItem';
+import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import TimelineConnector from '@mui/lab/TimelineConnector';
+import TimelineContent from '@mui/lab/TimelineContent';
+import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent';
+import TimelineDot from '@mui/lab/TimelineDot';
+import Typography from '@mui/material/Typography';
+import SentimentNeutralIcon from '@mui/icons-material/SentimentSatisfied';
+import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
+import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
+import WarningIcon from '@mui/icons-material/Warning';
+import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
+import CelebrationIcon from '@mui/icons-material/Celebration';
 
 const VideoProcess = ({ uploadResult, videoId }) => {
   const videoSplitFolder = uploadResult?.video_split_folder;
@@ -33,6 +47,16 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     frustration: 'Frustration',
     excited: 'Excited',
     happiness: 'Happiness',
+  };
+
+  // Emotion icons
+  const emotionIcons = {
+    neutral: <SentimentNeutralIcon />,
+    anger: <SentimentVeryDissatisfiedIcon />,
+    sadness: <SentimentDissatisfiedIcon />,
+    frustration: <WarningIcon />,
+    excited: <CelebrationIcon />,
+    happiness: <SentimentVerySatisfiedIcon />,
   };
 
   const formatTime = (seconds) => {
@@ -94,6 +118,7 @@ const VideoProcess = ({ uploadResult, videoId }) => {
               start_time: data.start_time,
               end_time: data.end_time,
               video_clip_path: data.video_clip_path,
+              text: data.text,
             },
           ]);
           setProgress((data.current / data.total) * 100);
@@ -179,74 +204,57 @@ const VideoProcess = ({ uploadResult, videoId }) => {
   const renderTimeline = () => {
     if (results.length === 0) return null;
 
-    // Calculate total duration to scale the timeline
-    const maxTime = Math.max(...results.map((r) => r.end_time));
-    if (maxTime === 0) return null;
-
     return (
       <div className="timeline-container mt-6">
         <h3 className="text-lg font-semibold mb-2">Video Timeline</h3>
-        <div className="timeline relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+        <Timeline position="alternate">
           {results.map((result, index) => {
-            const startPercent = (result.start_time / maxTime) * 100;
-            const endPercent = (result.end_time / maxTime) * 100;
-            const widthPercent = endPercent - startPercent;
-            const middlePercent = startPercent + widthPercent / 2;
-
             // Find dominant emotion
             let dominantEmotion = 'neutral';
             let maxProb = 0;
-            Object.entries(result.probabilities).forEach(([emotion, prob]) => {
+            Object.entries(result.probabilities || {}).forEach(([emotion, prob]) => {
               if (prob > maxProb) {
                 maxProb = prob;
                 dominantEmotion = emotion;
               }
             });
 
+            const timeWindow = `${formatTime(result.start_time)} - ${formatTime(result.end_time)}`;
+
             return (
-              <div
-                key={index}
-                className="absolute h-8"
-                style={{
-                  left: `${startPercent}%`,
-                  width: `${widthPercent}%`,
-                  backgroundColor: emotionColors[dominantEmotion],
-                  opacity: 0.7,
-                }}
-              >
-                {/* Emotion label above the segment */}
-                <div
-                  className="absolute -top-6 text-sm font-medium text-center w-full"
-                  style={{ color: emotionColors[dominantEmotion] }}
+              <TimelineItem key={index}>
+                <TimelineOppositeContent
+                  sx={{ m: 'auto 0' }}
+                  variant="body2"
+                  color="text.secondary"
                 >
-                  {emotionDisplayNames[dominantEmotion]}
-                </div>
-                {/* Middle screen thumbnail */}
-                <div
-                  className="absolute top-0 h-full"
-                  style={{ left: '50%', transform: 'translateX(-50%)' }}
-                >
+                  {timeWindow}
+                </TimelineOppositeContent>
+                <TimelineSeparator>
+                  <TimelineConnector />
+                  <TimelineDot style={{ backgroundColor: emotionColors[dominantEmotion] }}>
+                    {emotionIcons[dominantEmotion]}
+                  </TimelineDot>
+                  <TimelineConnector />
+                </TimelineSeparator>
+                <TimelineContent sx={{ py: '12px', px: 2 }}>
+                  <Typography variant="h6" component="span">
+                    {emotionDisplayNames[dominantEmotion]}
+                  </Typography>
+                  <Typography>{result.text || 'No text available'}</Typography>
                   <img
                     src={result.video_clip_path}
                     alt={`Clip ${result.current}`}
-                    className="h-full object-cover"
-                    style={{ maxWidth: '50px' }}
+                    style={{ maxWidth: '100px', marginTop: '8px' }}
                     onError={(e) => {
                       e.target.style.display = 'none'; // Hide if image fails to load
                     }}
                   />
-                </div>
-                {/* Start and end time labels */}
-                <div className="absolute -bottom-5 text-xs left-0">
-                  {formatTime(result.start_time)}
-                </div>
-                <div className="absolute -bottom-5 text-xs right-0">
-                  {formatTime(result.end_time)}
-                </div>
-              </div>
+                </TimelineContent>
+              </TimelineItem>
             );
           })}
-        </div>
+        </Timeline>
       </div>
     );
   };
@@ -313,12 +321,8 @@ const VideoProcess = ({ uploadResult, videoId }) => {
                 </h3>
                 <div className="result-details">
                   <p>
-                    <strong>Dominant Emotion:</strong>{' '}
+                    <strong>Predicted Emotion:</strong>{' '}
                     {results[results.length - 1].emotion}
-                  </p>
-                  <p>
-                    <strong>Confidence:</strong>{' '}
-                    {(results[results.length - 1].confidence * 100).toFixed(2)}%
                   </p>
                 </div>
               </div>
