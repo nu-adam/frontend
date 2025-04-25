@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { LineChart } from '@mui/x-charts/LineChart'
-import { useAuth } from './AuthContext'
-import './VideoProcess.css'
+import React, { useState, useEffect, useRef } from 'react';
+import { LineChart } from '@mui/x-charts/LineChart';
+import { useAuth } from './AuthContext';
+import './VideoProcess.css';
 
-const VideoProcess = ({ splitFolder, videoId }) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [errors, setErrors] = useState([]) // Changed from error to errors array
-  const [results, setResults] = useState([])
-  const [finalScores, setFinalScores] = useState(null)
-  const { isAuthenticated, token } = useAuth()
-  const eventSourceRef = useRef(null)
-  const reconnectTimerRef = useRef(null)
+const VideoProcess = ({ uploadResult, videoId }) => {
+  const videoSplitFolder = uploadResult?.video_split_folder;
+  const audioSplitFolder = uploadResult?.audio_split_folder;
+  const textSplitPath = uploadResult?.text_split_path;
+
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [errors, setErrors] = useState([]);
+  const [results, setResults] = useState([]);
+  const [finalScores, setFinalScores] = useState(null);
+  const { isAuthenticated, token } = useAuth();
+  const eventSourceRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
 
   // Emotion configuration
   const emotionColors = {
@@ -21,7 +25,7 @@ const VideoProcess = ({ splitFolder, videoId }) => {
     frustration: '#edc948',
     excited: '#b07aa1',
     happiness: '#ff9da7',
-  }
+  };
 
   const emotionDisplayNames = {
     neutral: 'Neutral',
@@ -30,59 +34,61 @@ const VideoProcess = ({ splitFolder, videoId }) => {
     frustration: 'Frustration',
     excited: 'Excited',
     happiness: 'Happiness',
-  }
+  };
 
   const getMaxConfidence = () => {
-    if (results.length === 0) return 100
-    const maxConfidence = Math.max(...results.map((result) => result.confidence * 100))
-    return Math.min(Math.ceil(maxConfidence * 1.1), 100)
-  }
+    if (results.length === 0) return 100;
+    const maxConfidence = Math.max(...results.map((result) => result.confidence * 100));
+    return Math.min(Math.ceil(maxConfidence * 1.1), 100);
+  };
 
   const handleStartAnalysis = () => {
-    if (!splitFolder) {
-      setErrors(['No video clips available for analysis'])
-      return
+    if (!videoSplitFolder || !audioSplitFolder || !textSplitPath) {
+      setErrors(['Missing required video processing data']);
+      return;
     }
 
     if (!isAuthenticated || !token) {
-      setErrors(['You must be logged in to analyze videos'])
-      return
+      setErrors(['You must be logged in to analyze videos']);
+      return;
     }
 
-    console.log('Starting analysis with:', { splitFolder, videoId, token: token.slice(0, 20) + '...' })
+    console.log('Starting analysis with:', { videoSplitFolder, audioSplitFolder, textSplitPath, videoId, token: token.slice(0, 20) + '...' });
 
-    setIsAnalyzing(true)
-    setProgress(0)
-    setResults([])
-    setFinalScores(null)
-    setErrors([])
+    setIsAnalyzing(true);
+    setProgress(0);
+    setResults([]);
+    setFinalScores(null);
+    setErrors([]);
 
     if (eventSourceRef.current) {
-      eventSourceRef.current.close()
+      eventSourceRef.current.close();
     }
 
-    const params = new URLSearchParams()
-    params.append('split_folder', splitFolder)
-    if (videoId) params.append('video_id', videoId)
-    params.append('token', token)
+    const params = new URLSearchParams();
+    params.append('video_split_folder', videoSplitFolder);
+    params.append('audio_split_folder', audioSplitFolder);
+    params.append('text_split_path', textSplitPath);
+    if (videoId) params.append('video_id', videoId);
+    params.append('token', token);
 
-    const es = new EventSource(`http://127.0.0.1:5000/analyze-clips?${params.toString()}`)
-    eventSourceRef.current = es
+    const es = new EventSource(`http://127.0.0.1:5000/analyze-clips?${params.toString()}`);
+    eventSourceRef.current = es;
 
     es.onopen = () => {
-      console.log('SSE connection opened for:', es.url)
-      clearTimeout(reconnectTimerRef.current)
-    }
+      console.log('SSE connection opened for:', es.url);
+      clearTimeout(reconnectTimerRef.current);
+    };
 
     es.onmessage = (event) => {
       try {
-        if (event.data.startsWith(':')) return
+        if (event.data.startsWith(':')) return;
 
-        console.log('SSE message received:', event.data)
-        const data = JSON.parse(event.data)
+        console.log('SSE message received:', event.data);
+        const data = JSON.parse(event.data);
 
         if (data.error) {
-          setErrors((prev) => [...prev, `Clip ${data.current}/${data.total}: ${data.error}`])
+          setErrors((prev) => [...prev, `Clip ${data.current}/${data.total}: ${data.error}`]);
         } else if (data.result) {
           setResults((prev) => [
             ...prev,
@@ -91,35 +97,35 @@ const VideoProcess = ({ splitFolder, videoId }) => {
               current: data.current,
               total: data.total,
             },
-          ])
-          setProgress((data.current / data.total) * 100)
+          ]);
+          setProgress((data.current / data.total) * 100);
         }
       } catch (e) {
-        console.error('Error parsing event data:', e)
-        setErrors((prev) => [...prev, 'Failed to parse analysis data'])
+        console.error('Error parsing event data:', e);
+        setErrors((prev) => [...prev, 'Failed to parse analysis data']);
       }
-    }
+    };
 
     es.addEventListener('complete', (event) => {
       try {
         if (event.data && event.data.trim() !== '{}') {
-          const completionData = JSON.parse(event.data)
+          const completionData = JSON.parse(event.data);
           if (completionData.emotion_scores) {
-            setFinalScores(completionData.emotion_scores)
+            setFinalScores(completionData.emotion_scores);
           }
           if (completionData.errors && completionData.errors.length > 0) {
-            setErrors((prev) => [...prev, ...completionData.errors])
+            setErrors((prev) => [...prev, ...completionData.errors]);
           }
         }
-        es.close()
-        setIsAnalyzing(false)
+        es.close();
+        setIsAnalyzing(false);
       } catch (e) {
-        console.error('Error handling completion:', e)
-        es.close()
-        setIsAnalyzing(false)
-        setErrors((prev) => [...prev, 'Analysis completed with errors'])
+        console.error('Error handling completion:', e);
+        es.close();
+        setIsAnalyzing(false);
+        setErrors((prev) => [...prev, 'Analysis completed with errors']);
       }
-    })
+    });
 
     es.onerror = (err) => {
       console.error('SSE error details:', {
@@ -127,57 +133,57 @@ const VideoProcess = ({ splitFolder, videoId }) => {
         url: es.url,
         error: err,
         timestamp: new Date().toISOString(),
-      })
+      });
       if (es.readyState === EventSource.CLOSED) {
         reconnectTimerRef.current = setTimeout(() => {
-          console.log('Attempting SSE reconnection...')
-          handleStartAnalysis()
-        }, 5000)
+          console.log('Attempting SSE reconnection...');
+          handleStartAnalysis();
+        }, 5000);
       }
-    }
-  }
+    };
+  };
 
   const handleStopAnalysis = () => {
     if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-      eventSourceRef.current = null
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
-    clearTimeout(reconnectTimerRef.current)
-    setIsAnalyzing(false)
-    setErrors((prev) => [...prev, 'Analysis stopped by user'])
-  }
+    clearTimeout(reconnectTimerRef.current);
+    setIsAnalyzing(false);
+    setErrors((prev) => [...prev, 'Analysis stopped by user']);
+  };
 
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
-        eventSourceRef.current.close()
+        eventSourceRef.current.close();
       }
-      clearTimeout(reconnectTimerRef.current)
-    }
-  }, [])
+      clearTimeout(reconnectTimerRef.current);
+    };
+  }, []);
 
   const emotionSeries = () => {
-    const emotions = ['neutral', 'anger', 'sadness', 'frustration', 'excited', 'happiness']
+    const emotions = ['neutral', 'anger', 'sadness', 'frustration', 'excited', 'happiness'];
     return emotions.map((emotion) => ({
       label: emotionDisplayNames[emotion],
       data: results.map((result) => parseFloat((result.probabilities[emotion] * 100).toFixed(2))),
       color: emotionColors[emotion],
       showMark: false,
       curve: 'linear',
-    }))
-  }
+    }));
+  };
 
-  const clipNumbers = results.map((result) => result.current)
+  const clipNumbers = results.map((result) => result.current);
 
   const renderFinalResults = () => {
-    if (!finalScores) return null
+    if (!finalScores) return null;
 
-    let dominant = { emotion: 'neutral', value: 0 }
+    let dominant = { emotion: 'neutral', value: 0 };
     Object.entries(finalScores).forEach(([emotion, value]) => {
       if (value > dominant.value) {
-        dominant = { emotion, value }
+        dominant = { emotion, value };
       }
-    })
+    });
 
     return (
       <div className="final-results">
@@ -199,14 +205,14 @@ const VideoProcess = ({ splitFolder, videoId }) => {
             ))}
         </ul>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="video-process-container">
       <h2>Video Analysis</h2>
 
-      {!splitFolder ? (
+      {!uploadResult ? (
         <div className="no-video-message">Please upload and process a video first</div>
       ) : (
         <>
@@ -215,7 +221,7 @@ const VideoProcess = ({ splitFolder, videoId }) => {
               <button
                 onClick={handleStartAnalysis}
                 className="analyze-btn"
-                disabled={!splitFolder || !isAuthenticated || !token}
+                disabled={!uploadResult || !isAuthenticated || !token}
               >
                 Analyze the Video
               </button>
@@ -231,7 +237,7 @@ const VideoProcess = ({ splitFolder, videoId }) => {
               <progress value={progress} max="100" />
               <span>{progress.toFixed(1)}%</span>
               <span>
-                Processing {results.length} of {results[0]?.total || '?'} clips
+                Processing {results.length} of {results[0]?.total || 'unknown'} clips
               </span>
             </div>
           )}
@@ -296,7 +302,7 @@ const VideoProcess = ({ splitFolder, videoId }) => {
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default VideoProcess
+export default VideoProcess;

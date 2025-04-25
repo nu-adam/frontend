@@ -11,27 +11,12 @@ const VideoUpload = ({ onUploadSuccess }) => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
   const [eventSource, setEventSource] = useState(null);
-  const { isAuthenticated, currentUser } = useAuth();
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith("video/")) {
-        setError("Please select a video file");
-        return;
-      }
-      setError(null);
-      setSuccess(false);
-      setVideo(file);
-      setProgress(0);
-      setProgressMessage("");
-    }
-  };
+  const { isAuthenticated, currentUser, token } = useAuth();
 
   const handleUpload = async () => {
     if (!video) return;
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !token) {
       setError("You must be logged in to upload videos.");
       return;
     }
@@ -50,7 +35,6 @@ const VideoUpload = ({ onUploadSuccess }) => {
     let sseCompleted = false;
 
     try {
-      // Create SSE connection for progress updates
       es = new EventSource("http://127.0.0.1:5000/upload-progress");
 
       es.onmessage = (event) => {
@@ -61,7 +45,6 @@ const VideoUpload = ({ onUploadSuccess }) => {
             setError(data.error);
             es.close();
           } else {
-            // Only update progress if not already at 100%
             if (data.progress > progress || !uploadCompleted) {
               setProgress(data.progress);
               setProgressMessage(data.message);
@@ -72,7 +55,7 @@ const VideoUpload = ({ onUploadSuccess }) => {
               setProgress(100);
               setProgressMessage("Upload and processing complete!");
               setSuccess(true);
-              setVideo(null);
+              // Do not reset video here to keep file name displayed
               onUploadSuccess(data.result);
               es.close();
             }
@@ -83,7 +66,6 @@ const VideoUpload = ({ onUploadSuccess }) => {
       };
 
       es.onerror = (err) => {
-        // Only show error if upload hasn't completed
         if (!uploadCompleted && !sseCompleted) {
           console.error("EventSource error:", err);
           setError("Connection error during upload. Please try again.");
@@ -91,13 +73,12 @@ const VideoUpload = ({ onUploadSuccess }) => {
         if (es) es.close();
       };
 
-      // Send the actual upload request
-      const response = await axios.post("/upload", formData, {
+      const response = await axios.post("http://127.0.0.1:5000/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          "Authorization": `Bearer ${token}`,
         },
         onUploadProgress: (progressEvent) => {
-          // Fallback progress for the upload portion (first 50%)
           const calculatedProgress = Math.round(
             (progressEvent.loaded * 50) / progressEvent.total
           );
@@ -110,12 +91,11 @@ const VideoUpload = ({ onUploadSuccess }) => {
 
       uploadCompleted = true;
 
-      // Fallback in case SSE didn't report completion
       if (!sseCompleted) {
         setProgress(100);
         setProgressMessage("Upload complete!");
         setSuccess(true);
-        setVideo(null);
+        // Do not reset video here
         onUploadSuccess(response.data);
       }
     } catch (err) {
@@ -130,6 +110,22 @@ const VideoUpload = ({ onUploadSuccess }) => {
     } finally {
       if (es) es.close();
       setLoading(false);
+    }
+  };
+
+  // Reset video when selecting a new file
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith("video/")) {
+        setError("Please select a video file");
+        return;
+      }
+      setError(null);
+      setSuccess(false);
+      setVideo(file);
+      setProgress(0);
+      setProgressMessage("");
     }
   };
 
