@@ -1,7 +1,6 @@
-// EmotionTheories.js
-import React from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';  // Import Bootstrap CSS
-import './EmotionTheories.css';  // Import custom CSS
+import React from 'react'
+import 'bootstrap/dist/css/bootstrap.min.css'  // Import Bootstrap CSS
+import './EmotionTheories.css'  // Import custom CSS
 
 const EmotionTheories = () => {
   const theories = [
@@ -29,7 +28,7 @@ const EmotionTheories = () => {
       title: "Facial-Feedback Theory of Emotion",
       content: "This theory suggests that facial expressions are directly tied to emotions. Smiling or frowning can influence how we feel about a situation."
     }
-  ];
+  ]
 
   return (
     <div className="emotion-theories-container">
@@ -81,7 +80,7 @@ const EmotionTheories = () => {
         ))}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default EmotionTheories;
+export default EmotionTheories

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import { useAuth } from './AuthContext'
 import './VideoUpload.css'
 
 const VideoUpload = ({ onUploadSuccess }) => {
@@ -10,6 +11,7 @@ const VideoUpload = ({ onUploadSuccess }) => {
   const [progress, setProgress] = useState(0)
   const [progressMessage, setProgressMessage] = useState('')
   const [eventSource, setEventSource] = useState(null)
+  const { isAuthenticated } = useAuth()
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
@@ -29,6 +31,11 @@ const VideoUpload = ({ onUploadSuccess }) => {
   const handleUpload = async () => {
     if (!video) return
 
+    if (!isAuthenticated) {
+      setError('You must be logged in to upload videos.')
+      return
+    }
+
     const formData = new FormData()
     formData.append('video', video)
 
@@ -38,57 +45,73 @@ const VideoUpload = ({ onUploadSuccess }) => {
     setProgress(0)
     setProgressMessage('Starting upload...')
 
-    // Create SSE connection for progress updates
-    const es = new EventSource(`http://127.0.0.1:5000/upload-progress`)
-    
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        
-        if (data.error) {
-          setError(data.error)
-          es.close()
-          setLoading(false)
-        } else {
-          setProgress(data.progress)
-          setProgressMessage(data.message)
-          
-          if (data.complete) {
-            setSuccess(true)
-            setVideo(null)
-            onUploadSuccess({
-              uploaded_path: data.uploaded_path,
-              split_folder: data.split_folder,
-              clips_created: data.clips_created
-            })
-            es.close()
-            setLoading(false)
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing progress data:', e)
-      }
-    }
-
-    es.onerror = (err) => {
-      console.error('EventSource error:', err)
-      setError('Connection error during upload. Please try again.')
-      es.close()
-      setLoading(false)
-    }
-
-    setEventSource(es)
+    let es = null
+    let uploadCompleted = false
+    let sseCompleted = false
 
     try {
+      // Create SSE connection for progress updates
+      es = new EventSource('http://127.0.0.1:5000/upload-progress')
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+
+          if (data.error) {
+            setError(data.error)
+            es.close()
+          } else {
+            // Only update progress if not already at 100%
+            if (data.progress > progress || !uploadCompleted) {
+              setProgress(data.progress)
+              setProgressMessage(data.message)
+            }
+
+            if (data.complete && data.result) {
+              sseCompleted = true
+              setProgress(100)
+              setProgressMessage('Upload and processing complete!')
+              setSuccess(true)
+              setVideo(null)
+              onUploadSuccess(data.result)
+              es.close()
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing progress data:', e)
+        }
+      }
+
+      es.onerror = (err) => {
+        // Only show error if upload hasn't completed
+        if (!uploadCompleted && !sseCompleted) {
+          console.error('EventSource error:', err)
+          setError('Connection error during upload. Please try again.')
+        }
+        if (es) es.close()
+      }
+
       // Send the actual upload request
-      const response = await axios.post('http://127.0.0.1:5000/upload', formData, {
+      const response = await axios.post('/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-        }
+        },
+        onUploadProgress: (progressEvent) => {
+          // Fallback progress for the upload portion (first 50%)
+          const calculatedProgress = Math.round(
+            (progressEvent.loaded * 50) / progressEvent.total
+          )
+          if (calculatedProgress > progress) {
+            setProgress(calculatedProgress)
+            setProgressMessage('Uploading video...')
+          }
+        },
       })
-      
-      // If we get here but SSE didn't report completion, handle it
-      if (!progress === 100) {
+
+      uploadCompleted = true
+
+      // Fallback in case SSE didn't report completion
+      if (!sseCompleted) {
         setProgress(100)
         setProgressMessage('Upload complete!')
         setSuccess(true)
@@ -104,7 +127,8 @@ const VideoUpload = ({ onUploadSuccess }) => {
       }
       setError(errorMessage)
       console.error('Error uploading video:', err)
-      es.close()
+    } finally {
+      if (es) es.close()
       setLoading(false)
     }
   }
@@ -146,8 +170,8 @@ const VideoUpload = ({ onUploadSuccess }) => {
         {(loading || progress > 0) && (
           <div className="upload-progress">
             <div className="progress-bar-container">
-              <div 
-                className="progress-bar" 
+              <div
+                className="progress-bar"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -156,7 +180,7 @@ const VideoUpload = ({ onUploadSuccess }) => {
               <span className="progress-percent">{Math.round(progress)}%</span>
             </div>
             {loading && (
-              <button 
+              <button
                 onClick={handleCancel}
                 className="cancel-button"
               >
@@ -170,14 +194,14 @@ const VideoUpload = ({ onUploadSuccess }) => {
           <button
             onClick={handleUpload}
             disabled={!video}
-            className="upload-btn"
+            className={`upload-btn ${loading ? 'loading' : ''}`}
           >
-            Upload Video
+            {loading ? 'Uploading...' : 'Upload Video'}
           </button>
         )}
 
         {error && <p className="error-message">{error}</p>}
-        {success && <p className="success-message">Video processed successfully!</p>}
+        {success && <p className="success-message">Video uploaded successfully!</p>}
       </div>
     </div>
   )
