@@ -1,0 +1,210 @@
+/* VideoHistory.css */
+.video-history {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.video-history h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.login-message,
+.loading-message,
+.no-videos-message {
+  text-align: center;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  color: #666;
+}
+
+.error-container {
+  text-align: center;
+  padding: 20px;
+  background-color: #ffebee;
+  border-radius: 5px;
+}
+
+.error-message {
+  color: #d32f2f;
+  margin-bottom: 15px;
+}
+
+.retry-button {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.retry-button:hover {
+  background-color: #1976d2;
+}
+
+.video-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.video-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.video-button:hover {
+  background-color: #e0e0e0;
+}
+
+.video-button.expanded {
+  background-color: #e1f5fe;
+}
+
+.video-button-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.video-date {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.expand-icon {
+  font-size: 1.5em;
+  color: #757575;
+}
+
+.video-content {
+  padding: 20px;
+  background-color: white;
+  border-top: 1px solid #e0e0e0;
+}
+
+.graph-container {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.analysis-graph {
+  max-width: 100%;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.emotions-summary {
+  margin-bottom: 20px;
+}
+
+.emotions-summary h3 {
+  font-size: 1.2em;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.emotions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emotion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.emotion-name {
+  width: 100px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.emotion-bar-container {
+  flex: 1;
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.emotion-bar {
+  height: 100%;
+  background-color: #2196f3;
+  border-radius: 10px;
+}
+
+.emotion-percentage {
+  width: 60px;
+  font-weight: 500;
+}
+
+.video-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.download-csv {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.download-csv:hover {
+  background-color: #388e3c;
+}
+
+/* Color each emotion differently */
+.emotion-item:nth-child(1) .emotion-bar {
+  background-color: #4caf50; /* Green */
+}
+.emotion-item:nth-child(2) .emotion-bar {
+  background-color: #f44336; /* Red */
+}
+.emotion-item:nth-child(3) .emotion-bar {
+  background-color: #2196f3; /* Blue */
+}
+.emotion-item:nth-child(4) .emotion-bar {
+  background-color: #ff9800; /* Orange */
+}
+.emotion-item:nth-child(5) .emotion-bar {
+  background-color: #9c27b0; /* Purple */
+}
+.emotion-item:nth-child(6) .emotion-bar {
+  background-color: #ffeb3b; /* Yellow */
+}

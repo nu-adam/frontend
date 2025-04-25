@@ -5,28 +5,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #f0f0f0;
   position: relative;
-  margin-bottom: 11vh;
+  margin-bottom: 15vh;
 }
-
-.background-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background-image: url('imgs/first.jpg');
-  background-size: cover;
-  background-position: center;
-  filter: brightness(0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100vw;
-  height: 100%;
-}
-
 .upload-content {
   text-align: center;
   background-color: white;
@@ -39,7 +20,15 @@
   position: absolute;
   bottom: -11vh;
 }
-
+.big-name {
+  font-size: 3em !important;
+  /* font-weight: bold; */
+  color: #faf9f6;
+  /* margin: 2rem 0; */
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
 .file-input {
   display: none;
 }
@@ -56,7 +45,7 @@
 }
 
 .file-input-label:hover {
-  border-color: #4CAF50;
+  border-color: #4caf50;
   background-color: #e8f5e9;
 }
 
@@ -64,7 +53,7 @@
   padding: 12px 24px;
   font-size: 1rem;
   color: white;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -96,7 +85,7 @@
 
 .progress-bar {
   height: 100%;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   transition: width 0.3s ease;
 }
 
@@ -139,7 +128,7 @@
 }
 
 .success-message {
-  color: #4CAF50;
+  color: #4caf50;
   font-size: 0.9rem;
   margin-top: 10px;
 }

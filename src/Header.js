@@ -14,7 +14,6 @@ const Header = () => {
 
         {isAuthenticated && (
           <div className="user-info">
-            <span className="user-name">Hello, {currentUser?.name}</span>
             <button className="logout-button" onClick={logout}>
               Logout
             </button>
