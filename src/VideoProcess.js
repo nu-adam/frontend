@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LineChart } from '@mui/x-charts/LineChart';
 import { useAuth } from './AuthContext';
 import './VideoProcess.css';
 
@@ -36,10 +35,10 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     happiness: 'Happiness',
   };
 
-  const getMaxConfidence = () => {
-    if (results.length === 0) return 100;
-    const maxConfidence = Math.max(...results.map((result) => result.confidence * 100));
-    return Math.min(Math.ceil(maxConfidence * 1.1), 100);
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleStartAnalysis = () => {
@@ -52,8 +51,6 @@ const VideoProcess = ({ uploadResult, videoId }) => {
       setErrors(['You must be logged in to analyze videos']);
       return;
     }
-
-    console.log('Starting analysis with:', { videoSplitFolder, audioSplitFolder, textSplitPath, videoId, token: token.slice(0, 20) + '...' });
 
     setIsAnalyzing(true);
     setProgress(0);
@@ -76,7 +73,6 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     eventSourceRef.current = es;
 
     es.onopen = () => {
-      console.log('SSE connection opened for:', es.url);
       clearTimeout(reconnectTimerRef.current);
     };
 
@@ -84,7 +80,6 @@ const VideoProcess = ({ uploadResult, videoId }) => {
       try {
         if (event.data.startsWith(':')) return;
 
-        console.log('SSE message received:', event.data);
         const data = JSON.parse(event.data);
 
         if (data.error) {
@@ -96,6 +91,9 @@ const VideoProcess = ({ uploadResult, videoId }) => {
               ...data.result,
               current: data.current,
               total: data.total,
+              start_time: data.start_time,
+              end_time: data.end_time,
+              video_clip_path: data.video_clip_path,
             },
           ]);
           setProgress((data.current / data.total) * 100);
@@ -128,15 +126,8 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     });
 
     es.onerror = (err) => {
-      console.error('SSE error details:', {
-        readyState: es.readyState,
-        url: es.url,
-        error: err,
-        timestamp: new Date().toISOString(),
-      });
       if (es.readyState === EventSource.CLOSED) {
         reconnectTimerRef.current = setTimeout(() => {
-          console.log('Attempting SSE reconnection...');
           handleStartAnalysis();
         }, 5000);
       }
@@ -162,19 +153,6 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     };
   }, []);
 
-  const emotionSeries = () => {
-    const emotions = ['neutral', 'anger', 'sadness', 'frustration', 'excited', 'happiness'];
-    return emotions.map((emotion) => ({
-      label: emotionDisplayNames[emotion],
-      data: results.map((result) => parseFloat((result.probabilities[emotion] * 100).toFixed(2))),
-      color: emotionColors[emotion],
-      showMark: false,
-      curve: 'linear',
-    }));
-  };
-
-  const clipNumbers = results.map((result) => result.current);
-
   const renderFinalResults = () => {
     if (!finalScores) return null;
 
@@ -186,66 +164,140 @@ const VideoProcess = ({ uploadResult, videoId }) => {
     });
 
     return (
-      <div className="final-results">
-        <h3>Analysis Complete</h3>
+      <div className="final-results mt-4">
+        <h3 className="text-lg font-semibold">Analysis Complete</h3>
         <p className="dominant-emotion">
           Dominant emotion:{' '}
           <span style={{ color: emotionColors[dominant.emotion] }}>
             {emotionDisplayNames[dominant.emotion]} ({(dominant.value * 100).toFixed(1)}%)
           </span>
         </p>
-        <h4>Overall Emotion Distribution</h4>
-        <ul className="final-scores-list">
-          {Object.entries(finalScores)
-            .sort((a, b) => b[1] - a[1])
-            .map(([emotion, value]) => (
-              <li key={emotion} style={{ color: emotionColors[emotion] }}>
-                {emotionDisplayNames[emotion]}: {(value * 100).toFixed(2)}%
-              </li>
-            ))}
-        </ul>
+      </div>
+    );
+  };
+
+  const renderTimeline = () => {
+    if (results.length === 0) return null;
+
+    // Calculate total duration to scale the timeline
+    const maxTime = Math.max(...results.map((r) => r.end_time));
+    if (maxTime === 0) return null;
+
+    return (
+      <div className="timeline-container mt-6">
+        <h3 className="text-lg font-semibold mb-2">Video Timeline</h3>
+        <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+          {results.map((result, index) => {
+            const startPercent = (result.start_time / maxTime) * 100;
+            const endPercent = (result.end_time / maxTime) * 100;
+            const widthPercent = endPercent - startPercent;
+            const middlePercent = startPercent + widthPercent / 2;
+
+            // Find dominant emotion
+            let dominantEmotion = 'neutral';
+            let maxProb = 0;
+            Object.entries(result.probabilities).forEach(([emotion, prob]) => {
+              if (prob > maxProb) {
+                maxProb = prob;
+                dominantEmotion = emotion;
+              }
+            });
+
+            return (
+              <div
+                key={index}
+                className="absolute h-8"
+                style={{
+                  left: `${startPercent}%`,
+                  width: `${widthPercent}%`,
+                  backgroundColor: emotionColors[dominantEmotion],
+                  opacity: 0.7,
+                }}
+              >
+                {/* Emotion label above the segment */}
+                <div
+                  className="absolute -top-6 text-sm font-medium text-center w-full"
+                  style={{ color: emotionColors[dominantEmotion] }}
+                >
+                  {emotionDisplayNames[dominantEmotion]}
+                </div>
+                {/* Middle screen thumbnail */}
+                <div
+                  className="absolute top-0 h-full"
+                  style={{ left: '50%', transform: 'translateX(-50%)' }}
+                >
+                  <img
+                    src={result.video_clip_path}
+                    alt={`Clip ${result.current}`}
+                    className="h-full object-cover"
+                    style={{ maxWidth: '50px' }}
+                    onError={(e) => {
+                      e.target.style.display = 'none'; // Hide if image fails to load
+                    }}
+                  />
+                </div>
+                {/* Start and end time labels */}
+                <div className="absolute -bottom-5 text-xs left-0">
+                  {formatTime(result.start_time)}
+                </div>
+                <div className="absolute -bottom-5 text-xs right-0">
+                  {formatTime(result.end_time)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="video-process-container">
-      <h2>Video Analysis</h2>
+    <div className="video-process-container p-4 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Video Analysis</h2>
 
       {!uploadResult ? (
-        <div className="no-video-message">Please upload and process a video first</div>
+        <div className="no-video-message text-gray-600">
+          Please upload and process a video first
+        </div>
       ) : (
         <>
-          <div className="analysis-controls">
+          <div className="analysis-controls mb-4">
             {!isAnalyzing ? (
               <button
                 onClick={handleStartAnalysis}
-                className="analyze-btn"
+                className="analyze-btn bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
                 disabled={!uploadResult || !isAuthenticated || !token}
               >
                 Analyze the Video
               </button>
             ) : (
-              <button onClick={handleStopAnalysis} className="stop-btn">
+              <button
+                onClick={handleStopAnalysis}
+                className="stop-btn bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
                 Stop Analysis
               </button>
             )}
           </div>
 
           {isAnalyzing && (
-            <div className="progress-container">
-              <progress value={progress} max="100" />
-              <span>{progress.toFixed(1)}%</span>
-              <span>
-                Processing {results.length} of {results[0]?.total || 'unknown'} clips
-              </span>
+            <div className="progress-container mb-4">
+              <progress value={progress} max="100" className="w-full" />
+              <div className="flex justify-between text-sm mt-1">
+                <span>{progress.toFixed(1)}%</span>
+                <span>
+                  Processing {results.length} of {results[0]?.total || 'unknown'} clips
+                </span>
+              </div>
             </div>
           )}
 
           {errors.length > 0 && (
-            <div className="error-messages">
+            <div className="error-messages mb-4">
               {errors.map((err, idx) => (
-                <div key={idx} className="error-message">{err}</div>
+                <div key={idx} className="error-message text-red-600">
+                  {err}
+                </div>
               ))}
             </div>
           )}
@@ -253,50 +305,23 @@ const VideoProcess = ({ uploadResult, videoId }) => {
           {finalScores && renderFinalResults()}
 
           <div className="results-container">
+            {renderTimeline()}
             {results.length > 0 && (
-              <>
-                <div className="chart-container">
-                  <LineChart
-                    xAxis={[{ data: clipNumbers, label: 'Clip Number', scaleType: 'point' }]}
-                    yAxis={[{ label: 'Probability (%)', min: 0, max: getMaxConfidence() }]}
-                    series={emotionSeries()}
-                    height={400}
-                    margin={{ left: 70, right: 30, top: 30, bottom: 70 }}
-                    slotProps={{
-                      legend: {
-                        direction: 'row',
-                        position: { vertical: 'bottom', horizontal: 'middle' },
-                        padding: 0,
-                      },
-                    }}
-                  />
+              <div className="latest-result mt-4">
+                <h3 className="text-lg font-semibold">
+                  Latest Result (Clip {results[results.length - 1].current})
+                </h3>
+                <div className="result-details">
+                  <p>
+                    <strong>Dominant Emotion:</strong>{' '}
+                    {results[results.length - 1].emotion}
+                  </p>
+                  <p>
+                    <strong>Confidence:</strong>{' '}
+                    {(results[results.length - 1].confidence * 100).toFixed(2)}%
+                  </p>
                 </div>
-
-                <div className="latest-result">
-                  <h3>Latest Result (Clip {results[results.length - 1].current})</h3>
-                  <div className="result-details">
-                    <p>
-                      <strong>Dominant Emotion:</strong> {results[results.length - 1].emotion}
-                    </p>
-                    <p>
-                      <strong>Confidence:</strong>{' '}
-                      {(results[results.length - 1].confidence * 100).toFixed(2)}%
-                    </p>
-                    <p>
-                      <strong>Probabilities:</strong>
-                    </p>
-                    <ul>
-                      {Object.entries(results[results.length - 1].probabilities)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([emotion, prob]) => (
-                          <li key={emotion} style={{ color: emotionColors[emotion] }}>
-                            {emotionDisplayNames[emotion]}: {(prob * 100).toFixed(2)}%
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
           </div>
         </>
